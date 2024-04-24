@@ -17,14 +17,16 @@ call(Pool, Msg, Timeout) ->
             Reply = gen_server:call(Worker, Msg, Timeout),
             poolboy:checkin(Pool, Worker),
             Reply;
-        Response -> Response
+        Response ->
+            Response
     end.
 
 %% @doc automatically checks in a worker if couldn't succeed in finding a connected one
 checkout_connected_worker(Pool) ->
     Worker = poolboy:checkout(Pool, true, ?GENSERVER_TIMEOUT),
     case wait_until_connected(Worker) of
-        {ok, connected} -> {ok, Worker};
+        {ok, connected} ->
+            {ok, Worker};
         Response ->
             poolboy:checkin(Pool, Worker),
             Response
@@ -37,14 +39,20 @@ wait_until_connected(Worker, Timeout) ->
     case gen_server:call(Worker, {get_connection_state}, ?GENSERVER_TIMEOUT) of
         connected ->
             {ok, connected};
-        _ ->
+        Return ->
             case Timeout >= ?MAXDELAY of
                 true ->
-                    lager:error("Connection retry limit reached for worker: ~p", [Worker]),
+                    lager:error("Return = ~p,  Connection retry limit reached for worker: ~p", [
+                        Return, Worker
+                    ]),
                     {error, connection_retry_limit_exceeded};
                 _ ->
-                    lager:warning("Boss pool worker: ~p not connected. Retrying in ~p", [Worker, Timeout*2]),
-                    timer:sleep(Timeout*2),
-                    wait_until_connected(Worker, Timeout*2)
+                    lager:warning(
+                        "Return = ~p, Boss pool worker: ~p not connected. Retrying in ~p", [
+                            Return, Worker, Timeout * 2
+                        ]
+                    ),
+                    timer:sleep(Timeout * 2),
+                    wait_until_connected(Worker, Timeout * 2)
             end
     end.

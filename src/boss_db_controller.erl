@@ -208,6 +208,7 @@ handle_cast({try_connect, Options}, State) when State#state.connection_state /= 
     CachePrefix = State#state.cache_prefix,
     try connections_for_adapter(Adapter, Options) of
         {ok, {ReadConn, WriteConn}} ->
+            lager:info("Connection successful, Res = ~p", [{ReadConn, WriteConn}]),
             {Shards, ModelDict} = make_shards(Options, Adapter),
             {noreply, #state{
                 connection_state = connected,
